@@ -9,8 +9,6 @@
 #define MA_HAS_VORBIS
 #endif
 
-typedef struct OggVorbis_File OggVorbis_File;
-
 static ma_result ma_decoder_init_vorbis__internal(const ma_decoder_config* pConfig, ma_decoder* pDecoder);
 
 #endif /* miniaudio_vorbis_h */
@@ -106,7 +104,7 @@ static long ma_vorbis_ov_tell__internal(void* param)
     return pDecoder->readPointerInBytes;
 }
 
-static ov_callbacks ov_decoder_callbacks = {
+static ov_callbacks ma_vorbis_ov_decoder_callbacks = {
     ma_vorbis_ov_read__internal,
     ma_vorbis_ov_seek__internal,
     ma_vorbis_ov_close__internal,
@@ -123,7 +121,7 @@ ma_result ma_decoder_init_vorbis__internal(const ma_decoder_config* pConfig, ma_
         return MA_OUT_OF_MEMORY;
     MA_ZERO_MEMORY(pVorbis, sizeof(OggVorbis_File));
 
-    ov_open_callbacks(pDecoder, pVorbis, NULL, 0, ov_decoder_callbacks);
+    ov_open_callbacks(pDecoder, pVorbis, NULL, 0, ma_vorbis_ov_decoder_callbacks);
 
     vorbis_info* vorbisInfo = ov_info(pVorbis, -1);
     if(vorbisInfo == NULL) {

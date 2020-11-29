@@ -13,6 +13,7 @@ the simple_mixing example for how best to do this.
 
 #include "../miniaudio.h"
 #include "../miniaudio_vorbis.h"
+#define MA_HAS_VORBIS
 #define MINIAUDIO_IMPLEMENTATION
 
 #include "../miniaudio.h"

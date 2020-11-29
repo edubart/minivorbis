@@ -15,14 +15,6 @@
   LICENSE
     BSD-like License, same as libogg and libvorbis, see end of file.
 */
-/* config_types.h */
-#include <stdint.h>
-typedef int16_t ogg_int16_t;
-typedef uint16_t ogg_uint16_t;
-typedef int32_t ogg_int32_t;
-typedef uint32_t ogg_uint32_t;
-typedef int64_t ogg_int64_t;
-typedef uint64_t ogg_uint64_t;
 /********************************************************************
  *                                                                  *
  * THIS FILE IS PART OF THE OggVorbis SOFTWARE CODEC SOURCE CODE.   *
@@ -176,7 +168,14 @@ typedef uint64_t ogg_uint64_t;
 
 #else
 
-/*#include <ogg/config_types.h>*/
+/* config_types.h */
+#include <stdint.h> 
+typedef int16_t ogg_int16_t; 
+typedef uint16_t ogg_uint16_t; 
+typedef int32_t ogg_int32_t; 
+typedef uint32_t ogg_uint32_t; 
+typedef int64_t ogg_int64_t; 
+typedef uint64_t ogg_uint64_t;
 
 #endif
 
