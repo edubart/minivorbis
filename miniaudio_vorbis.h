@@ -12,12 +12,6 @@
 typedef struct OggVorbis_File OggVorbis_File;
 
 static ma_result ma_decoder_init_vorbis__internal(const ma_decoder_config* pConfig, ma_decoder* pDecoder);
-static ma_uint64 ma_decoder_internal_on_get_length_in_pcm_frames__vorbis(ma_decoder* pDecoder);
-static ma_uint64 ma_decoder_internal_on_read_pcm_frames__vorbis(ma_decoder* pDecoder, void* pFramesOut, ma_uint64 frameCount);
-static ma_result ma_decoder_internal_on_uninit__vorbis(ma_decoder* pDecoder);
-static ma_result ma_decoder_internal_on_seek_to_pcm_frame__vorbis(ma_decoder* pDecoder, ma_uint64 frameIndex);
-static ma_result ma_vorbis_decoder_seek_to_pcm_frame(OggVorbis_File* pVorbis, ma_decoder* pDecoder, ma_uint64 frameIndex);
-static ma_uint64 ma_vorbis_decoder_read_pcm_frames(OggVorbis_File* pVorbis, ma_decoder* pDecoder, void* pFramesOut, ma_uint64 frameCount);
 
 #endif /* miniaudio_vorbis_h */
 
@@ -26,11 +20,29 @@ static ma_uint64 ma_vorbis_decoder_read_pcm_frames(OggVorbis_File* pVorbis, ma_d
 #define VORBIS_IMPL
 #include "minivorbis.h"
 
-ma_uint64 ma_vorbis_decoder_read_pcm_frames(OggVorbis_File* pVorbis, ma_decoder* pDecoder, void* pFramesOut, ma_uint64 frameCount)
+static ma_result ma_decoder_internal_on_seek_to_pcm_frame__vorbis(ma_decoder* pDecoder, ma_uint64 frameIndex)
 {
+    OggVorbis_File* pVorbis = (OggVorbis_File*)pDecoder->pInternalDecoder;
     MA_ASSERT(pVorbis != NULL);
-    MA_ASSERT(pDecoder != NULL);
+    return ov_pcm_seek(pVorbis, frameIndex) == 0 ? MA_SUCCESS : MA_ERROR;
+}
 
+static ma_result ma_decoder_internal_on_uninit__vorbis(ma_decoder* pDecoder)
+{
+    OggVorbis_File* pVorbis = (OggVorbis_File*)pDecoder->pInternalDecoder;
+    MA_ASSERT(pVorbis != NULL);
+    ov_clear(pVorbis);
+    ma__free_from_callbacks(pVorbis, &pDecoder->allocationCallbacks);
+    return MA_SUCCESS;
+}
+
+static ma_uint64 ma_decoder_internal_on_read_pcm_frames__vorbis(ma_decoder* pDecoder, void* pFramesOut, ma_uint64 frameCount)
+{
+    MA_ASSERT(pDecoder != NULL);
+    OggVorbis_File* pVorbis = (OggVorbis_File*)pDecoder->pInternalDecoder;
+    MA_ASSERT(pVorbis != NULL);
+    MA_ASSERT(pFramesOut != NULL);
+    MA_ASSERT(pDecoder->internalFormat == ma_format_f32);
     float* pFramesOutF = (float*)pFramesOut;
     int section = 0;
     long totalFramesRead = 0;
@@ -58,78 +70,39 @@ ma_uint64 ma_vorbis_decoder_read_pcm_frames(OggVorbis_File* pVorbis, ma_decoder*
     return totalFramesRead;
 }
 
-ma_result ma_vorbis_decoder_seek_to_pcm_frame(OggVorbis_File* pVorbis, ma_decoder* pDecoder, ma_uint64 frameIndex)
+static ma_uint64 ma_decoder_internal_on_get_length_in_pcm_frames__vorbis(ma_decoder* pDecoder)
 {
-    (void)pDecoder;
-
-    MA_ASSERT(pVorbis != NULL);
-
-    int res = ov_pcm_seek(pVorbis, frameIndex);
-    return res == 0 ? MA_SUCCESS : MA_ERROR;
-}
-
-ma_result ma_decoder_internal_on_seek_to_pcm_frame__vorbis(ma_decoder* pDecoder, ma_uint64 frameIndex)
-{
-    OggVorbis_File* pVorbis = (OggVorbis_File*)pDecoder->pInternalDecoder;
-    MA_ASSERT(pVorbis != NULL);
-
-    return ma_vorbis_decoder_seek_to_pcm_frame(pVorbis, pDecoder, frameIndex);
-}
-
-ma_result ma_decoder_internal_on_uninit__vorbis(ma_decoder* pDecoder)
-{
-    OggVorbis_File* pVorbis = (OggVorbis_File*)pDecoder->pInternalDecoder;
-    MA_ASSERT(pVorbis != NULL);
-
-    ov_clear(pVorbis);
-    ma__free_from_callbacks(pVorbis, &pDecoder->allocationCallbacks);
-
-    return MA_SUCCESS;
-}
-
-ma_uint64 ma_decoder_internal_on_read_pcm_frames__vorbis(ma_decoder* pDecoder, void* pFramesOut, ma_uint64 frameCount)
-{
-    OggVorbis_File* pVorbis;
-
-    MA_ASSERT(pDecoder   != NULL);
-    MA_ASSERT(pFramesOut != NULL);
-    MA_ASSERT(pDecoder->internalFormat == ma_format_f32);
-
-    pVorbis = (OggVorbis_File*)pDecoder->pInternalDecoder;
-    MA_ASSERT(pVorbis != NULL);
-
-    return ma_vorbis_decoder_read_pcm_frames(pVorbis, pDecoder, pFramesOut, frameCount);
-}
-
-ma_uint64 ma_decoder_internal_on_get_length_in_pcm_frames__vorbis(ma_decoder* pDecoder)
-{
+    MA_ASSERT(pDecoder != NULL);
     OggVorbis_File* pVorbis = (OggVorbis_File*)pDecoder->pInternalDecoder;
     return ov_pcm_total(pVorbis, -1);
 }
 
-size_t ma_vorbis_ov_read__internal(void *ptr, size_t size, size_t nmemb, void* param)
+static size_t ma_vorbis_ov_read__internal(void *ptr, size_t size, size_t nmemb, void* param)
 {
     ma_decoder* pDecoder = (ma_decoder*)param;
+    MA_ASSERT(pDecoder != NULL);
     return ma_decoder_read_bytes(pDecoder, ptr, size*nmemb);
 }
 
-int ma_vorbis_ov_seek__internal(void* param, ogg_int64_t offset, int whence)
+static int ma_vorbis_ov_seek__internal(void* param, ogg_int64_t offset, int whence)
 {
     if(whence == SEEK_END)
         return -1; /* Seek to end is not supported in miniaudio decoder. */
     ma_decoder* pDecoder = (ma_decoder*)param;
+    MA_ASSERT(pDecoder != NULL);
     ma_seek_origin origin = (whence == SEEK_CUR) ? ma_seek_origin_current : ma_seek_origin_start;
     return ma_decoder_seek_bytes(pDecoder, offset, origin);
 }
 
-int ma_vorbis_ov_close__internal(void* param)
+static int ma_vorbis_ov_close__internal(void* param)
 {
     return 0;
 }
 
-long ma_vorbis_ov_tell__internal(void* param)
+static long ma_vorbis_ov_tell__internal(void* param)
 {
     ma_decoder* pDecoder = (ma_decoder*)param;
+    MA_ASSERT(pDecoder != NULL);
     return pDecoder->readPointerInBytes;
 }
 
@@ -142,12 +115,10 @@ static ov_callbacks ov_decoder_callbacks = {
 
 ma_result ma_decoder_init_vorbis__internal(const ma_decoder_config* pConfig, ma_decoder* pDecoder)
 {
-    OggVorbis_File* pVorbis;
-
     MA_ASSERT(pConfig != NULL);
     MA_ASSERT(pDecoder != NULL);
 
-    pVorbis = (OggVorbis_File*)ma__malloc_from_callbacks(sizeof(OggVorbis_File), &pDecoder->allocationCallbacks);
+    OggVorbis_File* pVorbis = (OggVorbis_File*)ma__malloc_from_callbacks(sizeof(OggVorbis_File), &pDecoder->allocationCallbacks);
     if (pVorbis == NULL)
         return MA_OUT_OF_MEMORY;
     MA_ZERO_MEMORY(pVorbis, sizeof(OggVorbis_File));
@@ -158,7 +129,7 @@ ma_result ma_decoder_init_vorbis__internal(const ma_decoder_config* pConfig, ma_
     if(vorbisInfo == NULL) {
         ov_clear(pVorbis);
         ma__free_from_callbacks(pVorbis, &pDecoder->allocationCallbacks);
-        return MA_ERROR;
+        return MA_ERROR;  /* Failed to retrieve vorbis info */
     }
 
     /* If we get here it means we successfully opened the Vorbis decoder. */
