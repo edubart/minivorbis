@@ -30,7 +30,7 @@ cat <<EOF >> $OUTFILE
   Project URL: https://github.com/edubart/minivorbis
 
   This is libogg-$OGGVER and libvorbis-$VORBISVER contained in a single header to be bundled in C applications with ease.
-  Lua is a powerful, efficient, lightweight, embeddable scripting language.
+  This library is useful to decode OGG files.
 
   Do the following in *one* C file to create the implementation:
     #define VORBIS_IMPL
