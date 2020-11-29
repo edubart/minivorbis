@@ -22,7 +22,7 @@
 #include <stdlib.h>
 #include <math.h>
 #define VORBIS_IMPL
-#include "minivorbis.h"
+#include "../minivorbis.h"
 
 #ifdef _WIN32 /* We need the following two to set stdin/stdout to binary */
 #include <io.h>
