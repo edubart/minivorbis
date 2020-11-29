@@ -31,23 +31,28 @@ ma_uint64 ma_vorbis_decoder_read_pcm_frames(OggVorbis_File* pVorbis, ma_decoder*
     MA_ASSERT(pVorbis != NULL);
     MA_ASSERT(pDecoder != NULL);
 
-    char* pFramesOutChar = (char*)pFramesOut;
+    float* pFramesOutF = (float*)pFramesOut;
     int section = 0;
     long totalFramesRead = 0;
-    int bytesPerFrame = pDecoder->internalChannels * 2;
-    long bytesLeft = frameCount * bytesPerFrame;
-    int bigendian = ma_is_little_endian() == 0 ? 1 : 0;
+    int channels = pDecoder->internalChannels;
+    long framesLeft = frameCount;
 
-    /* Keep reading until we fill read the desired bytes amount. */
-    while(bytesLeft > 0) {
-        /* This reads into a buffer, with signed 16-bit samples. */
-        long bytesRead = ov_read(pVorbis, pFramesOutChar, bytesLeft, bigendian, 2, 1, &section);
-        if(bytesRead <= 0)
+    /* Keep reading until we read the desired frames amount. */
+    while(framesLeft > 0) {
+        float** outFrames = NULL;
+        long framesRead = ov_read_float(pVorbis, &outFrames, framesLeft, &section);
+        if(framesRead <= 0)
             break;
 
-        bytesLeft       -= bytesRead;
-        totalFramesRead += bytesRead / bytesPerFrame;
-        pFramesOutChar  += bytesRead;
+        for(int j=0;j<channels;++j) {
+            for(int i=0;i<framesRead;++i) {
+                pFramesOutF[i*channels+j] = outFrames[j][i];
+            }
+        }
+
+        framesLeft      -= framesRead;
+        totalFramesRead += framesRead;
+        pFramesOutF     += framesRead * channels;
     }
 
     return totalFramesRead;
@@ -88,7 +93,7 @@ ma_uint64 ma_decoder_internal_on_read_pcm_frames__vorbis(ma_decoder* pDecoder, v
 
     MA_ASSERT(pDecoder   != NULL);
     MA_ASSERT(pFramesOut != NULL);
-    MA_ASSERT(pDecoder->internalFormat == ma_format_s16);
+    MA_ASSERT(pDecoder->internalFormat == ma_format_f32);
 
     pVorbis = (OggVorbis_File*)pDecoder->pInternalDecoder;
     MA_ASSERT(pVorbis != NULL);
@@ -99,8 +104,7 @@ ma_uint64 ma_decoder_internal_on_read_pcm_frames__vorbis(ma_decoder* pDecoder, v
 ma_uint64 ma_decoder_internal_on_get_length_in_pcm_frames__vorbis(ma_decoder* pDecoder)
 {
     OggVorbis_File* pVorbis = (OggVorbis_File*)pDecoder->pInternalDecoder;
-    ov_pcm_total(pVorbis, -1);
-    return 0;
+    return ov_pcm_total(pVorbis, -1);
 }
 
 size_t ma_vorbis_ov_read__internal(void *ptr, size_t size, size_t nmemb, void* param)
@@ -172,8 +176,8 @@ ma_result ma_decoder_init_vorbis__internal(const ma_decoder_config* pConfig, ma_
     pDecoder->onGetLengthInPCMFrames = ma_decoder_internal_on_get_length_in_pcm_frames__vorbis;
     pDecoder->pInternalDecoder       = pVorbis;
 
-    /* The internal format is always s16. */
-    pDecoder->internalFormat     = ma_format_s16;
+    /* The internal format is always f32. */
+    pDecoder->internalFormat     = ma_format_f32;
     pDecoder->internalChannels   = vorbisInfo->channels;
     pDecoder->internalSampleRate = vorbisInfo->rate;
     ma_get_standard_channel_map(ma_standard_channel_map_vorbis, pDecoder->internalChannels, pDecoder->internalChannelMap);
