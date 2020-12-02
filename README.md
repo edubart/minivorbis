@@ -71,7 +71,7 @@ For documentation on how to use Ogg and Vorbis read its [official documentation]
 ## Extra Miniaudio Vorbis Decoder
 
 You can use `miniaudio_vorbis.h` to replace Vorbis decoder of the awesome
-single-header [miniaudio](https://miniaud.io/) library with miniogg, follow the
+single-header [miniaudio](https://miniaud.io/) library with minivorbis, follow the
 instructions described on it.
 
 ## Updates

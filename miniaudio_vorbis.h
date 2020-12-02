@@ -2,7 +2,7 @@
   miniaudio_vorbis.h -- libvorbis decoder for miniaudio
   Project URL: https://github.com/edubart/minivorbis
 
-  Use this file to replace miniaudio vorbis decoder with minioggg.h.
+  Use this file to replace miniaudio vorbis decoder with minivorbis.h.
 
   You should make the implementation like this:
     #include "miniaudio.h"
