@@ -29,15 +29,21 @@ cat <<EOF >> $OUTFILE
   minivorbis.h -- libvorbis decoder in a single header
   Project URL: https://github.com/edubart/minivorbis
 
-  This is libogg-$OGGVER and libvorbis-$VORBISVER contained in a single header to be bundled in C applications with ease.
-  This library is useful to decode OGG files.
+  This is libogg 1.3.4 + libvorbis 1.3.7 contained in a single header
+  to be bundled in C/C++ applications with ease for decoding OGG sound files.
+  Ogg Vorbis is a open general-purpose compressed audio format
+  for mid to high quality audio and music at fixed and variable bitrates.
 
-  Do the following in *one* C file to create the implementation:
+  Do the following in *one* C file to implement Ogg and Vorbis:
+    #define OGG_IMPL
     #define VORBIS_IMPL
 
-  Note that almost no modification was made in the Vorbis implementation code,
+  Optionally provide the following defines:
+    OV_EXCLUDE_STATIC_CALLBACKS     - exclude the default static callbacks
+
+  Note that almost no modification was made in the Ogg/Vorbis implementation code,
   thus there are some C variable names that may collide with your code,
-  therefore it is best to declare the Vorbis implementation in dedicated C file.
+  therefore it is best to declare the implementation in dedicated C file.
 
   LICENSE
     BSD-like License, same as libogg and libvorbis, see end of file.
@@ -48,17 +54,34 @@ EOF
 cat $OGGDIR/include/ogg/os_types.h >> $OUTFILE
 cat $OGGDIR/include/ogg/ogg.h >> $OUTFILE
 sed -i "s@# *include <ogg/config_types.h>@/* config_types.h */\n\
-#include <stdint.h> \n\
-typedef int16_t ogg_int16_t; \n\
-typedef uint16_t ogg_uint16_t; \n\
-typedef int32_t ogg_int32_t; \n\
-typedef uint32_t ogg_uint32_t; \n\
-typedef int64_t ogg_int64_t; \n\
+#include <stdint.h>\n\
+typedef int16_t ogg_int16_t;\n\
+typedef uint16_t ogg_uint16_t;\n\
+typedef int32_t ogg_int32_t;\n\
+typedef uint32_t ogg_uint32_t;\n\
+typedef int64_t ogg_int64_t;\n\
 typedef uint64_t ogg_uint64_t;@" $OUTFILE
 
 # vorbis headers
 cat $VORBISDIR/include/vorbis/codec.h >> $OUTFILE
 cat $VORBISDIR/include/vorbis/vorbisfile.h >> $OUTFILE
+
+# ogg implementation
+echo "#ifdef OGG_IMPL" >> $OUTFILE
+cat <<EOF >> $OUTFILE
+#ifdef __cplusplus
+extern "C" {
+#endif
+EOF
+  cat $OGGDIR/src/bitwise.c >> $OUTFILE
+  cat $OGGDIR/src/framing.c >> $OUTFILE
+  sed -i "/#include \"crctable.h\"/r $OGGDIR/src/crctable.h" $OUTFILE
+cat <<EOF >> $OUTFILE
+#ifdef __cplusplus
+}
+#endif
+EOF
+echo "#endif /* OGG_IMPL */" >> $OUTFILE
 
 # vorbis implementation
 echo "#ifdef VORBIS_IMPL" >> $OUTFILE
@@ -67,12 +90,7 @@ cat <<EOF >> $OUTFILE
 extern "C" {
 #endif
 EOF
-  # ogg sources
-  cat $OGGDIR/src/bitwise.c >> $OUTFILE
-  cat $OGGDIR/src/framing.c >> $OUTFILE
-  sed -i "/#include \"crctable.h\"/r $OGGDIR/src/crctable.h" $OUTFILE
-
-  # vorbis intenral headers
+  # vorbis internal headers
   cat $VORBISDIR/lib/misc.h >> $OUTFILE
   cat $VORBISDIR/lib/os.h >> $OUTFILE
   cat $VORBISDIR/lib/mdct.h >> $OUTFILE
@@ -119,7 +137,6 @@ EOF
 
   # vorbis file
   cat $VORBISDIR/lib/vorbisfile.c >> $OUTFILE
-
 cat <<EOF >> $OUTFILE
 #ifdef __cplusplus
 }
@@ -131,6 +148,7 @@ echo "#endif /* VORBIS_IMPL */" >> $OUTFILE
 cat <<EOF >> $OUTFILE
 /*
 Copyright (c) 2002-2020 Xiph.org Foundation
+Copyright (c) 2020 Eduardo Bart (https://github.com/edubart)
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions

@@ -2,15 +2,21 @@
   minivorbis.h -- libvorbis decoder in a single header
   Project URL: https://github.com/edubart/minivorbis
 
-  This is libogg-1.3.4 and libvorbis-1.3.7 contained in a single header to be bundled in C applications with ease.
-  This library is useful to decode OGG files.
+  This is libogg 1.3.4 + libvorbis 1.3.7 contained in a single header
+  to be bundled in C/C++ applications with ease for decoding OGG sound files.
+  Ogg Vorbis is a open general-purpose compressed audio format
+  for mid to high quality audio and music at fixed and variable bitrates.
 
-  Do the following in *one* C file to create the implementation:
+  Do the following in *one* C file to implement Ogg and Vorbis:
+    #define OGG_IMPL
     #define VORBIS_IMPL
 
-  Note that almost no modification was made in the Vorbis implementation code,
+  Optionally provide the following defines:
+    OV_EXCLUDE_STATIC_CALLBACKS     - exclude the default static callbacks
+
+  Note that almost no modification was made in the Ogg/Vorbis implementation code,
   thus there are some C variable names that may collide with your code,
-  therefore it is best to declare the Vorbis implementation in dedicated C file.
+  therefore it is best to declare the implementation in dedicated C file.
 
   LICENSE
     BSD-like License, same as libogg and libvorbis, see end of file.
@@ -169,12 +175,12 @@
 #else
 
 /* config_types.h */
-#include <stdint.h> 
-typedef int16_t ogg_int16_t; 
-typedef uint16_t ogg_uint16_t; 
-typedef int32_t ogg_int32_t; 
-typedef uint32_t ogg_uint32_t; 
-typedef int64_t ogg_int64_t; 
+#include <stdint.h>
+typedef int16_t ogg_int16_t;
+typedef uint16_t ogg_uint16_t;
+typedef int32_t ogg_int32_t;
+typedef uint32_t ogg_uint32_t;
+typedef int64_t ogg_int64_t;
 typedef uint64_t ogg_uint64_t;
 
 #endif
@@ -836,7 +842,7 @@ extern int ov_halfrate_p(OggVorbis_File *vf);
 
 #endif
 
-#ifdef VORBIS_IMPL
+#ifdef OGG_IMPL
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -4313,6 +4319,14 @@ int main(void){
   return(0);
 }
 
+#endif
+#ifdef __cplusplus
+}
+#endif
+#endif /* OGG_IMPL */
+#ifdef VORBIS_IMPL
+#ifdef __cplusplus
+extern "C" {
 #endif
 /********************************************************************
  *                                                                  *
@@ -21710,6 +21724,7 @@ int ov_time_seek_page_lap(OggVorbis_File *vf,double pos){
 #endif /* VORBIS_IMPL */
 /*
 Copyright (c) 2002-2020 Xiph.org Foundation
+Copyright (c) 2020 Eduardo Bart (https://github.com/edubart)
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions

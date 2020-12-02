@@ -1,3 +1,20 @@
+/*
+  miniaudio_vorbis.h -- libvorbis decoder for miniaudio
+  Project URL: https://github.com/edubart/minivorbis
+
+  Use this file to replace miniaudio vorbis decoder with minioggg.h.
+
+  You should make the implementation like this:
+    #include "miniaudio.h"
+    #include "miniaudio_vorbis.h"
+    #define MINIAUDIO_IMPLEMENTATION
+    #include "miniaudio.h"
+    #include "miniaudio_vorbis.h"
+
+  LICENSE
+    MIT No Attribution, see end of file.
+*/
+
 #ifndef miniaudio_vorbis_h
 #define miniaudio_vorbis_h
 
@@ -15,7 +32,9 @@ static ma_result ma_decoder_init_vorbis__internal(const ma_decoder_config* pConf
 
 #ifdef MINIAUDIO_IMPLEMENTATION
 
+#define OGG_IMPL
 #define VORBIS_IMPL
+#define OV_EXCLUDE_STATIC_CALLBACKS
 #include "minivorbis.h"
 
 static ma_result ma_decoder_internal_on_seek_to_pcm_frame__vorbis(ma_decoder* pDecoder, ma_uint64 frameIndex)
@@ -121,22 +140,23 @@ ma_result ma_decoder_init_vorbis__internal(const ma_decoder_config* pConfig, ma_
         return MA_OUT_OF_MEMORY;
     MA_ZERO_MEMORY(pVorbis, sizeof(OggVorbis_File));
 
-    ov_open_callbacks(pDecoder, pVorbis, NULL, 0, ma_vorbis_ov_decoder_callbacks);
+    if(ov_open_callbacks(pDecoder, pVorbis, NULL, 0, ma_vorbis_ov_decoder_callbacks) != 0) {
+        ma__free_from_callbacks(pVorbis, &pDecoder->allocationCallbacks);
+        return MA_INVALID_FILE;  /* Failed to read vorbis file */
+    }
 
     vorbis_info* vorbisInfo = ov_info(pVorbis, -1);
     if(vorbisInfo == NULL) {
         ov_clear(pVorbis);
         ma__free_from_callbacks(pVorbis, &pDecoder->allocationCallbacks);
-        return MA_ERROR;  /* Failed to retrieve vorbis info */
+        return MA_INVALID_FILE;  /* Failed to retrieve vorbis info */
     }
-
-    /* If we get here it means we successfully opened the Vorbis decoder. */
 
     /* Don't allow more than MA_MAX_CHANNELS channels. */
     if (vorbisInfo->channels > MA_MAX_CHANNELS) {
         ov_clear(pVorbis);
         ma__free_from_callbacks(pVorbis, &pDecoder->allocationCallbacks);
-        return MA_ERROR;   /* Too many channels. */
+        return MA_ERROR; /* Too many channels. */
     }
 
     pDecoder->onReadPCMFrames        = ma_decoder_internal_on_read_pcm_frames__vorbis;
@@ -155,3 +175,22 @@ ma_result ma_decoder_init_vorbis__internal(const ma_decoder_config* pConfig, ma_
 }
 
 #endif /* MINIAUDIO_IMPLEMENTATION */
+
+/*
+Copyright (c) 2020 Eduardo Bart (https://github.com/edubart)
+
+Permission is hereby granted, free of charge, to any person obtaining a copy of
+this software and associated documentation files (the "Software"), to deal in
+the Software without restriction, including without limitation the rights to
+use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies
+of the Software, and to permit persons to whom the Software is furnished to do
+so.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+*/
